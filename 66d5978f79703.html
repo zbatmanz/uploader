@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>آپلود فایل با نوار پیشرفت</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .upload-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 300px;
+        }
+        .file-input {
+            display: none; /* مخفی کردن ورودی فایل */
+        }
+        .custom-file-upload {
+            display: inline-block;
+            padding: 10px 20px;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        .custom-file-upload:hover {
+            background-color: #0056b3;
+        }
+        .progress {
+            width: 100%;
+            background-color: #f3f3f3;
+            border-radius: 5px;
+            margin-top: 10px;
+            height: 20px;
+            display: none; /* مخفی کردن نوار پیشرفت در ابتدا */
+        }
+        .progress-bar {
+            height: 100%;
+            background-color: #4caf50;
+            width: 0%;
+            border-radius: 5px;
+            text-align: center;
+            line-height: 20px;
+            color: white;
+        }
+        .submit-btn {
+            margin-top: 20px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background-color: #28a745;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .submit-btn:hover {
+            background-color: #218838;
+        }
+        .message {
+        word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+    <div class="upload-container">
+        <h2>آپلود فایل</h2>
+        <form id="uploadForm" action="#" method="post" enctype="multipart/form-data">
+            <label class="custom-file-upload">
+                انتخاب فایل
+                <input type="file" name="file" class="file-input" required>
+            </label>
+            <br>
+            <div id="fileName"></div><br>
+            <button type="submit" class="submit-btn">آپلود فایل</button>
+        </form>
+        <div class="progress">
+            <div class="progress-bar" id="progress-bar">0%</div>
+        </div>
+        <div class="message" id="message"></div>
+    </div>
+
+    <script>
+        const uploadForm = document.getElementById('uploadForm');
+        const progressBar = document.getElementById('progress-bar');
+        const progressContainer = document.querySelector('.progress');
+        const messageDiv = document.getElementById('message');
+        
+        document.getElementById('uploadForm').addEventListener('change', function(event) {
+        const fileName = document.getElementById('fileName');
+    fileName.textContent = event.target.files[0].name; // نمایش نام فایل
+});
+
+        uploadForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(uploadForm);
+            
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/4/home/upload/api.php', true);
+            xhr.upload.addEventListener('progress', function(e) {
+                if (e.lengthComputable) {
+                    const percentComplete = (e.loaded / e.total) * 100;
+                    progressBar.style.width = percentComplete + '%';
+                    progressBar.innerText = Math.round(percentComplete) + '%';
+                    progressContainer.style.display = 'block';
+                }
+            });
+
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    try {
+                        const response = xhr.responseText; 
+                        messageDiv.textContent = 'موفقیت: ' + response; // نمایش پیام موفقیت
+                        navigator.clipboard.writeText(response)
+                .then(() => {
+                    alert( 'اپلود فایل با موفقیت انجام شد! \n و ادرس فایل در کلیپ بورد گوشی شما ذخیره شد.');
+                })
+                .catch(err => {
+                    alert('خطا در کپی متن: ' + err);
+                });
+                    } catch (e) {
+                        messageDiv.textContent = 'خطا در دریافت پاسخ: ' + e.message;
+                    }
+                    progressBar.style.width = '100%';
+                    progressBar.innerText = '100%';
+                } else {
+                    alert('خطا در آپلود فایل.');
+                }
+            };
+
+            xhr.send(formData);
+        });
+    </script>
+</body>
+</html>
