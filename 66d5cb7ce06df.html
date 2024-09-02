@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ویرایشگر متن JSON</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/3.10.2/mdb.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .editor-container {
+            display: flex;
+            align-items: flex-start;
+        }
+        .line-numbers {
+            padding: 10px;
+            border: 1px solid #ccc;
+            height: 100%;
+            border-right: none;
+            text-align: right;
+            color: #888;
+            user-select: none;
+            min-height: 300px;
+            background: #f9f9f9;
+            overflow-y: auto;
+            width: 200px;
+        }
+        .editor {
+            width: calc(500% - 100px);
+            height: 100%;
+            border: 1px solid #ccc;
+            padding: 10px;
+            font-size: 16px;
+            resize: none;
+            overflow-y: auto;
+            
+        }
+        .editor-container {
+            position: relative;
+            width: 100%;
+            height:100%;
+        }
+    </style>
+</head>
+<body>
+
+    <h4>ویرایشگر متن JSON</h4>
+    <div class="editor-container">
+        <textarea id="lineNumbers" class="line-numbers"readonly></textarea>
+        <textarea id="jsonEditor" class="editor" placeholder="متن JSON خود را اینجا وارد کنید..."  oninput="updateLineNumbers()" onscroll="syncScroll()"></textarea>
+    </div>
+    <br>
+    <button id="saveButton" class="btn btn-primary">ذخیره</button>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    <script>
+        function updateLineNumbers() {
+            const editor = document.getElementById("jsonEditor");
+            const lineNumbers = document.getElementById("lineNumbers");
+            const lines = editor.value.split("\n").length;
+            lineNumbers.innerHTML = '';
+
+            for (let i = 1; i <= lines; i++) {
+                lineNumbers.innerHTML += i + '\n';
+            }
+        }
+
+        function syncScroll() {
+            const editor = document.getElementById("jsonEditor");
+            const lineNumbers = document.getElementById("lineNumbers");
+            lineNumbers.scrollTop = editor.scrollTop;
+        }
+
+        document.getElementById("saveButton").onclick = function() {
+            const jsonText = document.getElementById("jsonEditor").value;
+
+            // تبدیل متن به JSON و ذخیره آن (در اینجا برای دانلود)
+            const blob = new Blob([jsonText], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "data.json";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            // بازنشانی ویرایشگر
+            document.getElementById("jsonEditor").value = '';
+            document.getElementById("lineNumbers").innerHTML = '';
+        };
+    </script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/3.10.2/mdb.min.js"></script>
+</body>
+</html>
