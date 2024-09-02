@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "cli-color": "^2.0.3",
+    "jsrubi": "^1.3.1",
+    "prompt-sync": "^4.2.0",
+    "sync-request": "^6.1.0"
+  }
+}
