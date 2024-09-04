@@ -1,0 +1,55 @@
+<!-- index.php -->
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="app.css">
+    <title>ثبت‌نام</title>
+</head>
+<body>
+    <div class="container">
+        <h2>ایجاد حساب کاربری</h2>
+        <form action="register.php" method="POST" onsubmit="return validateForm()">
+            <input type="text" name="username" id="username" placeholder="یوزرنیم" required>
+            <input type="text" name="name" id="name" placeholder="نام و نام خانوادگی" required>
+            
+            <input type="email" name="email" id="email" placeholder="ایمیل" required>
+        
+            <input type="password" name="password" id="password" placeholder="رمز عبور" required>
+            
+            <input type="submit" value="ثبت‌نام">
+        </form>
+    </div>
+</body>
+<script>
+        function validateForm() {
+            
+            document.getElementById('usernameError').innerText = '';
+            document.getElementById('passwordError').innerText = '';
+
+            
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+            const email = document.getElementById('email').value.trim();
+            let isValid = true;
+
+            
+            if (username === '') {
+                document.getElementById('usernameError').innerText = 'لطفاً نام کاربری را وارد کنید.';
+                isValid = false;
+            }
+            if (email === '') {
+                document.getElementById('EmailError').innerText = 'لطفاً نام کاربری را وارد کنید.';
+                isValid = false;
+            }
+            
+            if (password === '') {
+                document.getElementById('passwordError').innerText = 'لطفاً رمز عبور را وارد کنید.';
+                isValid = false;
+            }
+
+            return isValid; 
+        }
+    </script>
+</html>
