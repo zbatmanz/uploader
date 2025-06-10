@@ -1,0 +1,141 @@
+<?php
+header("Content-type: application/json; charset=utf-8");
+
+class VideoMetadataExtractor {
+    private $sessionToken;
+    private $userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36';
+    
+    public function __construct($sessionToken) {
+        $this->sessionToken = $sessionToken;
+    }
+
+    private function fetchPage($url) {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_USERAGENT, $this->userAgent);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            "Cookie: session_token={$this->sessionToken}"
+        ]);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        $response = curl_exec($ch);
+        
+        if (curl_errno($ch)) {
+            throw new Exception("cURL Error: " . curl_error($ch));
+        }
+        
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        if ($httpCode !== 200) {
+            throw new Exception("HTTP Error: Status code $httpCode for URL $url");
+        }
+        
+        return $response;
+    }
+
+    private function extractMetadata($content) {
+        $metadata = [
+            'video_title' => '',
+            'encoded_id' => '',
+            'sponsors' => [],
+            'uploader_name' => '',
+            'video_url' => '',
+            'video_url_low' => '',
+            'video_url_high' => '',
+            'video_hls' => '',
+            'thumb_url' => '',
+            'thumb_url_169' => '',
+            'thumb_slide' => '',
+            'thumb_slide_big' => ''
+        ];
+
+        $patterns = [
+            'video_title' => "/setVideoTitle\('(.*?)'\);/",
+            'encoded_id' => "/setEncodedIdVideo\('(.*?)'\);/",
+            'sponsors' => "/setSponsors\(\[(.*?)\]\);/",
+            'video_url_low' => "/setVideoUrlLow\('(.*?)'\);/",
+            'video_url_high' => "/setVideoUrlHigh\('(.*?)'\);/",
+            'video_hls' => "/setVideoHLS\('(.*?)'\);/",
+            'thumb_url' => "/setThumbUrl\('(.*?)'\);/",
+            'thumb_url_169' => "/setThumbUrl169\('(.*?)'\);/",
+            'thumb_slide' => "/setThumbSlide\('(.*?)'\);/",
+            'thumb_slide_big' => "/setThumbSlideBig\('(.*?)'\);/",
+            'uploader_name' => "/setUploaderName\('(.*?)'\);/",
+            'video_url' => "/setVideoURL\('(.*?)'\);/"
+        ];
+
+        foreach ($patterns as $key => $pattern) {
+            if (preg_match($pattern, $content, $match)) {
+                $metadata[$key] = $match[1];
+            }
+        }
+
+        if (!empty($metadata['sponsors'])) {
+            $metadata['sponsors'] = json_decode('[' . $metadata['sponsors'] . ']', true);
+        }
+
+        return $metadata;
+    }
+
+
+    public function processUrl($url) {
+        try {
+            $content = $this->fetchPage($url);
+            $metadata = $this->extractMetadata($content);
+            
+
+            return [
+            'developer' => 't.me/Mr_Kigga',
+			'message' => 'Extraction of download links and information was done with success',
+			'url' => $url,
+			'data' => $metadata
+            ];
+        } catch (Exception $e) {
+            return [
+                'status' => 'error',
+                'url' => $url,
+                'message' => $e->getMessage()
+            ];
+        }
+    }
+
+    public function processMultipleUrls($urls, $delay = 2) {
+        $results = [];
+        
+        foreach ($urls as $url) {
+            $result = $this->processUrl($url);
+            $results[] = $result;
+            echo "Processed: $url - Status: {$result['status']}\n";
+            sleep($delay);
+        }
+        
+        return $results;
+    }
+
+    public function processUrlsFromFile($filePath, $delay = 2) {
+        if (!file_exists($filePath)) {
+            throw new Exception("File not found: $filePath");
+        }
+        
+        $urls = file($filePath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        return $this->processMultipleUrls($urls, $delay);
+    }
+}
+
+if (isset($_GET['url'])) {
+	if (!empty($_GET['url'])) {
+    $sessionToken = '0c8f81bbc268832bzCPlsStEJ_TMOCBzkSn88t8gnUxpUSXR1TraX0uWMbthz3YLfv69pXbJlvkKWwIkPP1CuMr1cxMSv-k6jU9Q-07jxE4hyogQT2_7FZzawl7MaxEjd54E9yI7ubrAv-EGH0aosAiSPYaUHz1TzVvqpAbzXkVav-aboOB7FMxiw_V-YGBC-pMZU58FEzrX_mbf5DBUYEg_NzUGLUZWFxIiyqnC-TgGmP0zRsaQy9GMW5I=';
+    $extractor = new VideoMetadataExtractor($sessionToken);
+
+    $url = trim($_GET['url']);
+    $result = $extractor->processUrl($url);
+    echo json_encode($result,488);
+
+	} else {
+		echo 'empty paramter';
+	}
+} else {
+	echo 'not set paramterter';
+}
