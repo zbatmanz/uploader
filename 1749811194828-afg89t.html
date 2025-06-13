@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ریـلز با صدا</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #000;
+      color: white;
+      overscroll-behavior-y: contain;
+    }
+    
+    #reelsViewport {
+      height: 100vh;
+      width: 100%;
+      overflow-y: scroll;
+      scroll-snap-type: y mandatory;
+      position: fixed;
+      top: 0;
+      left: 0;
+    }
+    
+    .reel {
+      height: 100vh;
+      width: 100%;
+      scroll-snap-align: start;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .video-container {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+    
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      background-color: #000;
+    }
+    
+    .unmute-btn {
+      position: absolute;
+      bottom: 80px;
+      left: 20px;
+      background: rgba(0,0,0,0.5);
+      border: none;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      color: white;
+      z-index: 10;
+      cursor: pointer;
+    }
+    
+    .loading {
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div id="reelsViewport">
+    <div class="loading">در حال بارگذاری...</div>
+  </div>
+
+  <script>
+    let currentPlayingVideo = null;
+    let reelsData = [];
+
+    async function loadReels() {
+      try {
+        const response = await fetch('https://flatg.api-vison.workers.dev/api/reels');
+        const data = await response.json();
+        
+        if (!data.success || !data.reels) {
+          throw new Error('خطا در دریافت داده‌ها');
+        }
+        
+        reelsData = data.reels.filter(reel => reel.url.endsWith('.mp4'));
+        renderReels();
+      } catch (error) {
+        console.error('خطا:', error);
+        document.getElementById('reelsViewport').innerHTML = `
+          <div class="error" style="height:100vh;display:flex;align-items:center;justify-content:center;">
+            ${error.message}
+          </div>
+        `;
+      }
+    }
+
+    function renderReels() {
+      const viewport = document.getElementById('reelsViewport');
+      viewport.innerHTML = '';
+      
+      reelsData.forEach((reel, index) => {
+        const reelElement = document.createElement('div');
+        reelElement.className = 'reel';
+        reelElement.dataset.reelId = reel.id;
+        
+        reelElement.innerHTML = `
+          <div class="video-container">
+            <video 
+              id="video-${index}" 
+              loop 
+              playsinline 
+              ${index === 0 ? 'autoplay' : ''}
+              webkit-playsinline
+              x-webkit-airplay="allow"
+              preload="auto"
+            >
+              <source src="${reel.url}" type="video/mp4">
+            </video>
+            <button class="unmute-btn" onclick="toggleMute(${index})">🔇</button>
+            <div class="reel-info">
+              <h3>@${reel.username}</h3>
+              <p>${reel.caption || ''}</p>
+            </div>
+          </div>
+        `;
+        
+        viewport.appendChild(reelElement);
+      });
+      
+      setupScrollHandler();
+      setupFirstVideo();
+    }
+
+    function setupFirstVideo() {
+      const firstVideo = document.querySelector('video');
+      if (firstVideo) {
+        currentPlayingVideo = firstVideo;
+        firstVideo.play().catch(e => console.log('پخش خودکار انجام نشد:', e));
+      }
+    }
+
+    function setupScrollHandler() {
+      const viewport = document.getElementById('reelsViewport');
+      let isScrolling = false;
+      
+      viewport.addEventListener('scroll', () => {
+        if (isScrolling) return;
+        
+        isScrolling = true;
+        handleScroll();
+        
+        setTimeout(() => {
+          isScrolling = false;
+        }, 200);
+      });
+    }
+
+    function handleScroll() {
+      const viewport = document.getElementById('reelsViewport');
+      const reelElements = document.querySelectorAll('.reel');
+      const viewportHeight = viewport.clientHeight;
+      const scrollPosition = viewport.scrollTop;
+      
+      let closestReel = null;
+      let minDistance = Infinity;
+      
+      reelElements.forEach(reel => {
+        const reelTop = reel.offsetTop;
+        const reelHeight = reel.clientHeight;
+        const reelCenter = reelTop + (reelHeight / 2);
+        const distance = Math.abs(scrollPosition + (viewportHeight / 2) - reelCenter);
+        
+        if (distance < minDistance) {
+          minDistance = distance;
+          closestReel = reel;
+        }
+      });
+      
+      if (closestReel) {
+        const video = closestReel.querySelector('video');
+        if (video && video !== currentPlayingVideo) {
+          if (currentPlayingVideo) {
+            currentPlayingVideo.pause();
+            currentPlayingVideo.currentTime = 0;
+          }
+          currentPlayingVideo = video;
+          video.play().catch(e => console.log('پخش ویدیو انجام نشد:', e));
+        }
+      }
+    }
+
+    function toggleMute(index) {
+      const video = document.getElementById(`video-${index}`);
+      if (video) {
+        video.muted = !video.muted;
+        const btn = video.parentElement.querySelector('.unmute-btn');
+        btn.textContent = video.muted ? '🔇' : '🔊';
+      }
+    }
+
+    // اجرا هنگام لود صفحه
+    document.addEventListener('DOMContentLoaded', () => {
+      loadReels();
+      
+      // فعال کردن صدا پس از تعامل کاربر (الزامی در برخی مرورگرها)
+      document.body.addEventListener('click', () => {
+        if (currentPlayingVideo) {
+          currentPlayingVideo.play().catch(e => console.log('پخش انجام نشد:', e));
+        }
+      }, { once: true });
+    });
+  </script>
+</body>
+</html>
